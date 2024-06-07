@@ -1,24 +1,95 @@
-from main import BooksCollector
+import pytest
+from fixtures.conftest import collector
+from fixtures.conftest import horror_book
+from fixtures.conftest import some_valid_length_book
+from fixtures.conftest import invalid_genre
 
-# класс TestBooksCollector объединяет набор тестов, которыми мы покрываем наше приложение BooksCollector
-# обязательно указывать префикс Test
+
 class TestBooksCollector:
+    books_list = [
+        ["Война миров", "Фантастика"],
+        ["Шерлок", "Детективы"],
+        ["Три поросенка", "Мультфильмы"]
+    ]
 
-    # пример теста:
-    # обязательно указывать префикс test_
-    # дальше идет название метода, который тестируем add_new_book_
-    # затем, что тестируем add_two_books - добавление двух книг
-    def test_add_new_book_add_two_books(self):
-        # создаем экземпляр (объект) класса BooksCollector
-        collector = BooksCollector()
+    books_list_without_age_rating = [
+        ["Война миров", "Фантастика"],
+        ["Три поросенка", "Мультфильмы"],
+        ["Тупой и еще тупее", "Комедии"]
+    ]
 
-        # добавляем две книги
-        collector.add_new_book('Гордость и предубеждение и зомби')
-        collector.add_new_book('Что делать, если ваш кот хочет вас убить')
+    favorite_books_list = [
+        "Война миров", "Шерлок", "Три поросенка"
+    ]
 
-        # проверяем, что добавилось именно две
-        # словарь books_rating, который нам возвращает метод get_books_rating, имеет длину 2
-        assert len(collector.get_books_rating()) == 2
+    def test_add_new_book_add_one_book_positive_result(self, some_valid_length_book, collector):
+        collector.add_new_book(some_valid_length_book[0])
+        assert some_valid_length_book[0] in collector.get_books_genre()
 
-    # напиши свои тесты ниже
-    # чтобы тесты были независимыми в каждом из них создавай отдельный экземпляр класса BooksCollector()
+    @pytest.mark.parametrize("name, genre", books_list)
+    def test_set_book_genre_set_valid_value_genre_positive_result(self, name, genre, collector):
+        collector.add_new_book(name)
+        collector.set_book_genre(name, genre)
+        assert collector.get_book_genre(name) == genre
+
+    def test_set_book_genre_set_invalid_value_genre_is_empty(self, some_valid_length_book, invalid_genre, collector):
+        collector.add_new_book(some_valid_length_book[0])
+        collector.set_book_genre(some_valid_length_book[0], invalid_genre[0])
+        assert collector.get_book_genre(some_valid_length_book[0]) is ""
+
+    @pytest.mark.parametrize("name, genre", books_list)
+    def test_get_book_genre_valid_name_positive_result(self, name, genre, collector):
+        collector.add_new_book(name)
+        collector.set_book_genre(name, genre)
+        assert collector.get_book_genre(name) == genre
+
+    @pytest.mark.parametrize("name, genre", books_list)
+    def test_get_books_with_specific_genre_valid_genre_positive_result(self, name, genre, collector):
+        collector.add_new_book(name)
+        collector.set_book_genre(name, genre)
+        assert collector.get_books_with_specific_genre(genre) == [name]
+
+    @pytest.mark.parametrize("name, genre", books_list)
+    def test_get_books_genre_return_glossary_positive_result(self, name, genre, collector):
+        collector.add_new_book(name)
+        collector.set_book_genre(name, genre)
+        assert collector.get_books_genre() == {name: genre}
+
+    @pytest.mark.parametrize(
+        "name, genre", books_list_without_age_rating)
+    def test_get_books_for_children_return_books_for_children_list_positive_result(self, name, genre, collector):
+        collector.add_new_book(name)
+        collector.set_book_genre(name, genre)
+        assert collector.get_books_for_children() == [name]
+
+    def test_get_books_for_children_genre_age_rating_returned_list_is_empty(self, horror_book, collector):
+        collector.add_new_book(horror_book[0])
+        collector.set_book_genre(horror_book[0], horror_book[1])
+        assert collector.get_books_for_children() == []
+
+    @pytest.mark.parametrize("name", favorite_books_list)
+    def test_add_book_in_favorites_add_valid_value_positive_result(self, name, collector):
+        collector.add_new_book(name)
+        collector.add_book_in_favorites(name)
+        assert name in collector.get_list_of_favorites_books()
+
+    def test_add_book_in_favorites_add_duplicate_quantity_not_increased(self, some_valid_length_book, collector):
+        collector.add_new_book(some_valid_length_book[0])
+        collector.add_book_in_favorites(some_valid_length_book[0])
+        collector.add_book_in_favorites(some_valid_length_book[0])
+        assert len(collector.get_list_of_favorites_books()) == 1
+
+    def test_delete_book_from_favorites_book_in_favorites_positive_result(self, some_valid_length_book, collector):
+        collector.add_new_book(some_valid_length_book[0])
+        collector.add_book_in_favorites(some_valid_length_book[0])
+        collector.delete_book_from_favorites(some_valid_length_book[0])
+        assert len(collector.get_list_of_favorites_books()) == 0
+
+    def test_get_list_of_favorites_books_favorites_list_not_empty_positive_result(self, some_valid_length_book,
+                                                                                  collector):
+        collector.add_new_book(some_valid_length_book[0])
+        collector.add_book_in_favorites(some_valid_length_book[0])
+        assert collector.get_list_of_favorites_books() == [some_valid_length_book[0]]
+
+    def test_get_list_of_favorites_books_empty_list_positive_result(self, collector):
+        assert collector.get_list_of_favorites_books() == []
